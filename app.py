@@ -1,96 +1,57 @@
-
 from flask import Flask, request
-from twilio.twiml.messaging_response import MessagingResponse
-from datetime import datetime
 import os
 
 app = Flask(__name__)
 
-# In-memory user state tracking (dictionary)
-user_state = {}
-
 @app.route('/webhook', methods=['POST'])
-def whatsapp_bot():
-    incoming_msg = request.values.get('Body', '').strip()
-    user_number = request.values.get('From', '')
+def webhook():
+    incoming_msg = request.values.get('Body', '').strip().lower()
 
-    resp = MessagingResponse()
-    msg = resp.message()
+    if incoming_msg == 'hi':
+        return '''<Response><Message>👋 Welcome to HR Dost!
+Please choose an option:\n\nType 1 – Apply for Visiting Card</Message></Response>'''
 
-    # Get current user session or initialize
-    state = user_state.get(user_number, {'step': 'greet'})
+    elif incoming_msg == '1':
+        return '''<Response><Message>Enter your full name (e.g., Rajnikant Tiwari)</Message></Response>'''
 
-    step = state['step']
+    elif incoming_msg.startswith('name:'):
+        return '''<Response><Message>Enter your employee number (e.g., BB1234)</Message></Response>'''
 
-    if step == 'greet' and incoming_msg.lower() == 'hi':
-        msg.body("👋 Welcome to HR Dost!\nPlease choose an option:\n\nType 1 – Apply for Visiting Card")
-        state['step'] = 'menu'
+    elif incoming_msg.startswith('emp:'):
+        return '''<Response><Message>✅ Your visiting card request is ready.
 
-    elif step == 'menu' and incoming_msg == '1':
-        msg.body("Enter your full name (e.g., Rajnikant Tiwari)")
-        state['step'] = 'get_name'
+🎯 Final Step — Choose how to send your request:
+Option A – Outlook Web (opens auto-filled email in browser)
+Option B – Copy-paste email text into your Outlook app
+Option C – Open default email app (Outlook must be default)
 
-    elif step == 'get_name':
-        state['name'] = incoming_msg.strip()
-        msg.body("Enter your Employee Number (e.g., BB1234)")
-        state['step'] = 'get_emp'
+Please reply with A, B, or C to continue.</Message></Response>'''
 
-    elif step == 'get_emp':
-        state['emp'] = incoming_msg.strip()
-        name = state['name']
-        emp = state['emp']
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        state['timestamp'] = timestamp
+    elif incoming_msg == 'a':
+        return '''<Response><Message>ℹ️ Please ensure you're logged into Outlook Web.
+Then click below and fill in your name and employee number manually:
 
-        msg.body("✅ Your visiting card request is ready.\n\n🎯 Final Step — Choose how to send your request:\n\n"
-                 "Option A – Outlook Web (opens browser)\n"
-                 "Option B – Copy-paste email text for Outlook app\n"
-                 "Option C – Open default email app (Outlook must be default)\n\n"
-                 "Please reply with A, B, or C to continue.")
-        state['step'] = 'final_choice'
+https://outlook.office.com/mail/deeplink/compose?to=hnihr@bajajbroking.in&cc=employeesupport@bajajbroking.in,rajnikant.tiwari@bajajbroking.in,jahnavi.sharma@bajajbroking.in&subject=Request%20for%20Visiting%20Card&body=I%20would%20like%20to%20apply%20for%20visiting%20card.%0AName%3A%20%0AEmployee%20Number%3A</Message></Response>'''
 
-    elif step == 'final_choice' and incoming_msg.lower() == 'a':
-        outlook_link = (
-            "https://outlook.office.com/mail/deeplink/compose"
-            "?to=hnihr@bajajbroking.in"
-            "&cc=employeesupport@bajajbroking.in,rajnikant.tiwari@bajajbroking.in,jahnavi.sharma@bajajbroking.in"
-            "&subject=Request%20for%20Visiting%20Card"
-            "&body=I%20would%20like%20to%20apply%20for%20visiting%20card.%0AName:%20%0AEmployee%20Number:%20"
-        )
-        msg.body(f"🧠 You must be logged into Outlook Web in your browser.\n"
-                 f"If you're logged in, tap below:\n\n{outlook_link}")
+    elif incoming_msg == 'b':
+        return '''<Response><Message>✉️ Copy and paste the following email into your Outlook app:
 
-    elif step == 'final_choice' and incoming_msg.lower() == 'b':
-        msg.body("Copy and paste the following email in Outlook:\n\n"
-                 "To: hnihr@bajajbroking.in\n"
-                 "CC: employeesupport@bajajbroking.in, rajnikant.tiwari@bajajbroking.in, jahnavi.sharma@bajajbroking.in\n"
-                 "Subject: Request for Visiting Card\n\n"
-                 "I would like to apply for visiting card.\nName: \nEmployee Number:")
+To: hnihr@bajajbroking.in
+CC: employeesupport@bajajbroking.in, rajnikant.tiwari@bajajbroking.in, jahnavi.sharma@bajajbroking.in
+Subject: Request for Visiting Card
 
-    elif step == 'final_choice' and incoming_msg.lower() == 'c':
-        msg.body("⚠️ Please make sure Outlook is your default email app.\n"
-                 "If not, please use Option A or B.\n\nReply YES to continue with Option C.")
-        state['step'] = 'confirm_c'
+I would like to apply for visiting card.
+Name:
+Employee Number:</Message></Response>'''
 
-    elif step == 'confirm_c' and incoming_msg.lower() == 'yes':
-        name = state.get('name', '')
-        emp = state.get('emp', '')
-        mailto_link = (
-            "mailto:hnihr@bajajbroking.in"
-            "?cc=employeesupport@bajajbroking.in,rajnikant.tiwari@bajajbroking.in,jahnavi.sharma@bajajbroking.in"
-            "&subject=Request%20for%20Visiting%20Card"
-            f"&body=I%20would%20like%20to%20apply%20for%20visiting%20card.%0AName:%20{name}%0AEmployee%20Number:%20{emp}"
-        )
-        msg.body(f"📧 Tap below:\n{mailto_link}\n\n(Works only if Outlook is default email app)")
+    elif incoming_msg == 'c':
+        return '''<Response><Message>⚠️ Make sure Outlook is your default email app.
+If not, please use Option A or B.
 
-    else:
-        msg.body("Sorry, I didn't understand. Please type 'Hi' to begin.")
-        state['step'] = 'greet'
+mailto:hnihr@bajajbroking.in?cc=employeesupport@bajajbroking.in,rajnikant.tiwari@bajajbroking.in,jahnavi.sharma@bajajbroking.in&subject=Request%20for%20Visiting%20Card&body=I%20would%20like%20to%20apply%20for%20visiting%20card.%0AName:%0AEmployee%20Number:</Message></Response>'''
 
-    # Save state back
-    user_state[user_number] = state
-    return str(resp)
+    return "<Response><Message>Invalid option. Please type 'Hi' to restart.</Message></Response>"
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
