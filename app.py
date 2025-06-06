@@ -67,12 +67,20 @@ Please reply with A, B, or C to continue.
 
     # Step 5: Handle A
     elif session['step'] == 'final_choice' and incoming_msg == 'a':
-        msg.body("""
-🔗 You must be logged into Outlook Web in your browser to proceed.
-If you're logged in, click the link below:
+        # Generate clean Outlook Web link
+        outlook_link = (
+            "https://outlook.office.com/mail/deeplink/compose"
+            "?to=hnihr@bajajbroking.in"
+            "&cc=employeesupport@bajajbroking.in,rajnikant.tiwari@bajajbroking.in,jahnavi.sharma@bajajbroking.in"
+            "&subject=Request%20for%20Visiting%20Card"
+            "&body=I%20would%20like%20to%20apply%20for%20visiting%20card.%0AName:%20%0AEmployee%20Number:%20"
+        )
 
-https://outlook.office.com/mail/deeplink/compose?to=hnihr@bajajbroking.in&cc=employeesupport@bajajbroking.in,rajnikant.tiwari@bajajbroking.in,jahnavi.sharma@bajajbroking.in&subject=Request%20for%20Visiting%20Card&body=I%20would%20like%20to%20apply%20for%20visiting%20card.%0AName:%20%0AEmployee%20Number:%20
-""")
+        msg.body(
+            f"🧠 You must be logged into Outlook Web in your browser.\n"
+            f"If you're logged in, tap below to open a pre-filled email:\n\n"
+            f"[Click to Email](<{outlook_link}>)"
+        )
         return str(resp)
 
     # Step 6: Handle B
